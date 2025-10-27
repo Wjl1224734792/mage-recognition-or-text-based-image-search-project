@@ -1,0 +1,24 @@
+{
+  "name": "embedding-service",
+  "version": "1.0.0",
+  "description": "图像嵌入服务，提供图像特征提取 API",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --watch index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.6",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "keywords": [
+    "embedding",
+    "image-feature-extraction",
+    "ai",
+    "transformers"
+  ],
+  "author": "吴建霖",
+  "license": "MIT"
+}

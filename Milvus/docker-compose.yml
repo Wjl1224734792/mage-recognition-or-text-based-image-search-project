@@ -1,0 +1,168 @@
+services:
+  etcd:
+    container_name: milvus-etcd
+    image: quay.io/coreos/etcd:v3.5.18
+    environment:
+      - ETCD_AUTO_COMPACTION_MODE=revision
+      - ETCD_AUTO_COMPACTION_RETENTION=1000
+      - ETCD_QUOTA_BACKEND_BYTES=4294967296
+      - ETCD_SNAPSHOT_COUNT=50000
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/etcd:/etcd
+    command: etcd -advertise-client-urls=http://etcd:2379 -listen-client-urls=http://0.0.0.0:2379 --data-dir /etcd
+    healthcheck:
+      test: ["CMD", "etcdctl", "endpoint", "health"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+    # 资源分配：元数据管理，低负载
+    cpus: '0.3'  # 占比7.5%
+    mem_limit: '1g'
+    mem_reservation: '512m'
+
+  minio:
+    container_name: milvus-minio
+    image: minio/minio:RELEASE.2024-12-18T13-15-44Z
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
+    ports:
+      - "9001:9001"
+      - "9000:9000"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/minio:/minio_data
+    command: minio server /minio_data --console-address ":9001"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    networks:
+      - milvus
+    # 资源分配：存储服务，IO密集型
+    cpus: '0.3'  # 占比7.5%
+    mem_limit: '2g'
+    mem_reservation: '1g'
+
+  standalone:
+    container_name: milvus-standalone
+    image: milvusdb/milvus:v2.6.4
+    command: ["milvus", "run", "standalone"]
+    security_opt:
+    - seccomp:unconfined
+    environment:
+      ETCD_ENDPOINTS: etcd:2379
+      MINIO_ADDRESS: minio:9000
+      MQ_TYPE: woodpecker
+      # 认证配置
+      MILVUS_SECURITY_AUTHENTICATION_ENABLED: "true"
+      MILVUS_SECURITY_AUTHENTICATION_USERNAME: "root"
+      MILVUS_SECURITY_AUTHENTICATION_PASSWORD: "Milvus"
+      MILVUS_SECURITY_CLIENT_ENABLESERVER: "false"
+      # 768维向量优化配置
+      MILVUS_CACHE_SIZE: "4g"  # 缓存向量数据（总内存50%）
+      MILVUS_INDEX_FILE_SIZE: "1024"  # 索引文件大小适配1万条数据
+      QUERY_NODE_GPU_ENABLED: "false"  # 非GPU场景关闭
+      QUERY_NODE_CONCURRENT_SEARCH_REQUESTS: "8"  # 与CPU核数匹配（2核×4线程）
+      INDEX_BUILDING_MEM_POOL_SIZE: "2g"  # 索引构建内存池（768维需更多内存）
+      # 优化参数
+      MILVUS_INDEXNODE_SCHEDULER_BUILDPARALLEL: "2"
+      MILVUS_QUERYNODE_SEGCORE_CHUNKROWS: "256"
+      MILVUS_DATANODE_SEGMENT_INSERTBUFSIZE: "33554432"
+      MILVUS_DATACOORD_SEGMENT_MAXSIZE: "512"
+    volumes:
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/volumes/milvus:/var/lib/milvus
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9091/healthz"]
+      interval: 30s
+      start_period: 90s
+      timeout: 20s
+      retries: 3
+    ports:
+      - "19530:19530"
+      - "9091:9091"
+    depends_on:
+      - "etcd"
+      - "minio"
+    networks:
+      - milvus
+    # 资源分配：核心向量计算服务，CPU密集型
+    cpus: '2.0'  # 占比50%（4核中核心资源）
+    mem_limit: '8g'
+    mem_reservation: '4g'
+
+  embedding-service:
+    container_name: embedding-service
+    build:
+      context: ../Backend
+      dockerfile: services/embedding-service/Dockerfile
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=production
+      - PORT=3002
+    env_file:
+      - .env
+    volumes:
+      - ../Backend/config:/app/config:ro
+      - ../Backend/utils:/app/utils:ro
+      - ../Backend/models:/app/models:ro
+      - embedding_cache:/app/.cache
+    depends_on:
+      - "standalone"
+    networks:
+      - milvus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3002/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+    # 资源分配：700M模型推理，需足够CPU
+    cpus: '1.0'  # 占比25%（模型推理单独分配）
+    mem_limit: '3g'  # 预留模型加载+推理内存（700M模型+运行时）
+    mem_reservation: '2g'
+
+  database-service:
+    container_name: database-service
+    build:
+      context: ../Backend
+      dockerfile: services/database-service/Dockerfile
+    ports:
+      - "3001:3001" # 外部端口:内部端口
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
+      - NODE_OPTIONS=--max-old-space-size=1024
+    env_file:
+      - .env
+    volumes:
+      - ../Backend/config:/app/config:ro
+      - ../Backend/utils:/app/utils:ro
+    depends_on:
+      - "standalone"
+      - "embedding-service"
+    networks:
+      - milvus
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3001/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s    
+    # 资源分配：轻量API服务，低负载
+    cpus: '0.4'  # 占比10%（剩余资源）
+    mem_limit: '1g'
+    mem_reservation: '512m'
+
+volumes:
+  embedding_cache:
+    driver: local
+
+networks:
+  milvus:
+    driver: bridge

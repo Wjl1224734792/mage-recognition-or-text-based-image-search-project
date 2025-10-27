@@ -1,0 +1,24 @@
+{
+  "name": "database-service",
+  "version": "1.0.0",
+  "description": "Milvus 向量数据库服务，提供向量存储和搜索 API",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node --watch index.js",
+    "dev": "node --watch index.js"
+  },
+  "dependencies": {
+    "@zilliz/milvus2-sdk-node": "^2.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "keywords": [
+    "milvus",
+    "vector-database",
+    "similarity-search",
+    "database"
+  ],
+  "author": "吴建霖",
+  "license": "MIT"
+}

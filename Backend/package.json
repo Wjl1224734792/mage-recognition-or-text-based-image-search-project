@@ -1,0 +1,43 @@
+{
+  "name": "milvus-vector-database-monorepo",
+  "version": "1.0.0",
+  "description": "Milvus 向量数据库 monorepo，包含数据库服务和嵌入服务",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "services/database-service",
+    "services/embedding-service"
+  ],
+  "scripts": {
+    "start:database": "cd services/database-service && yarn start",
+    "start:embedding": "cd services/embedding-service && yarn start",
+    "start:all": "concurrently \"yarn start:embedding\" \"yarn start:database\"",
+    "dev:database": "cd services/database-service && yarn dev",
+    "dev:embedding": "cd services/embedding-service && yarn dev",
+    "dev:all": "concurrently \"yarn dev:embedding\" \"yarn dev:database\"",
+    "install:all": "yarn install && cd services/database-service && yarn install && cd ../embedding-service && yarn install",
+    "clean": "rimraf node_modules services/*/node_modules",
+    "fresh-install": "yarn clean && yarn install:all"
+  },
+  "dependencies": {
+    "@huggingface/transformers": "^3.7.6",
+    "@zilliz/milvus2-sdk-node": "^2.6.0",
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2",
+    "rimraf": "^5.0.5"
+  },
+  "keywords": [
+    "milvus",
+    "vector-database",
+    "image-search",
+    "similarity-search",
+    "ai",
+    "monorepo",
+    "microservices"
+  ],
+  "author": "吴建霖",
+  "license": "MIT"
+}
