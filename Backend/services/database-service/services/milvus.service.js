@@ -193,12 +193,39 @@ class MilvusService {
    * @returns {Promise<Array>} 特征向量
    */
   async callEmbeddingService(imageInput) {
+    let isBlobInput = false;
+    let blobSize = 0;
+    
     try {
       console.log('🔄 调用嵌入服务提取特征...');
       
-      const response = await this.httpClient.post('/api/v1/embedding/extract', {
-        imageInput
-      });
+      let response;
+      
+      // 根据输入类型选择不同的接口
+      if (imageInput instanceof Blob) {
+        isBlobInput = true;
+        blobSize = imageInput.size;
+        console.log(`📦 使用Blob接口，大小: ${blobSize} bytes`);
+        
+        // 将Blob对象转换为可以通过HTTP传递的格式
+        const arrayBuffer = await imageInput.arrayBuffer();
+        const uint8Array = new Uint8Array(arrayBuffer);
+        const blobData = {
+          data: Array.from(uint8Array),
+          type: imageInput.type || 'image/jpeg'
+        };
+        
+        response = await this.httpClient.post('/api/v1/embedding/extract/blob', {
+          imageBlob: blobData
+        });
+      } else if (typeof imageInput === 'string') {
+        console.log(`🔗 使用URL接口: ${imageInput.substring(0, 50)}...`);
+        response = await this.httpClient.post('/api/v1/embedding/extract', {
+          imageInput
+        });
+      } else {
+        throw new Error(`不支持的图像输入类型: ${typeof imageInput}`);
+      }
 
       if (!response.success) {
         throw new Error(`嵌入服务调用失败: ${response.message}`);
@@ -209,6 +236,17 @@ class MilvusService {
     } catch (error) {
       console.error('❌ 嵌入服务调用失败:', error.message);
       throw error;
+    } finally {
+      // 如果是Blob输入，记录清理信息
+      if (isBlobInput) {
+        try {
+          console.log(`🧹 Blob对象已传递给嵌入服务，大小: ${blobSize} bytes`);
+          // 注意：这里不能直接清理imageInput，因为它可能还在被调用者使用
+          // 清理工作由调用者（如searchSimilarVectorsWithBlob）负责
+        } catch (cleanupError) {
+          console.warn('⚠️ Blob传递记录警告:', cleanupError.message);
+        }
+      }
     }
   }
 

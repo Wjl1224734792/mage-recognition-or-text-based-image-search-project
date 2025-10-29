@@ -149,8 +149,8 @@ class EmbeddingService {
   }
 
   /**
-   * 提取图像特征
-   * @param {string|Blob} imageInput - 图像输入（URL 或 Blob）
+   * 提取图像特征（通过URL）
+   * @param {string} imageInput - 图像URL
    * @returns {Promise<Object>} 特征提取结果
    */
   async extractFeatures(imageInput) {
@@ -162,8 +162,13 @@ class EmbeddingService {
       throw new Error('图像输入不能为空');
     }
 
+    // 验证输入类型（只接受URL字符串）
+    if (typeof imageInput !== 'string') {
+      throw new Error('extractFeatures 只接受字符串类型的URL输入');
+    }
+
     // 检查是否为 Base64 编码（不支持）
-    if (typeof imageInput === 'string' && imageInput.startsWith('data:image/')) {
+    if (imageInput.startsWith('data:image/')) {
       throw new Error('不支持 Base64 编码的图像输入，请使用 URL 或 Blob 对象');
     }
 
@@ -263,73 +268,143 @@ class EmbeddingService {
   }
 
   /**
-   * 批量提取图像特征（使用并发控制）
-   * @param {Array} imageInputs - 图像输入数组
-   * @returns {Promise<Array>} 批量特征提取结果
+   * 提取图像特征（通过Blob对象）
+   * @param {Blob} imageBlob - 图像Blob对象
+   * @returns {Promise<Object>} 特征提取结果
    */
-  async batchExtractFeatures(imageInputs) {
-    if (!Array.isArray(imageInputs) || imageInputs.length === 0) {
-      throw new Error('图像输入数组不能为空');
+  async extractFeaturesFromBlob(imageBlob) {
+    // 确保服务已初始化
+    await this.autoInitialize();
+
+    // 验证输入
+    if (!imageBlob) {
+      throw new Error('图像Blob对象不能为空');
     }
 
-    console.log(`🔄 批量提取特征，数量: ${imageInputs.length}`);
+    // 验证Blob对象类型
+    if (!(imageBlob instanceof Blob)) {
+      throw new Error('extractFeaturesFromBlob 只接受Blob对象输入');
+    }
 
+    // 验证Blob对象大小
+    if (imageBlob.size === 0) {
+      throw new Error('图像Blob对象不能为空');
+    }
+
+    // 验证MIME类型
+    if (!imageBlob.type.startsWith('image/')) {
+      throw new Error('Blob对象必须是图像类型');
+    }
+
+    let result = null;
+    
     try {
-      // 创建任务数组
-      const tasks = imageInputs.map((imageInput, index) => ({
-        id: `batch-extract-${index}`,
-        task: async () => {
-          try {
-            return await this.extractFeatures(imageInput);
-          } catch (error) {
-            console.error(`❌ 批量处理第 ${index + 1} 个图像失败:`, error.message);
-            return {
-              success: false,
-              error: error.message,
-              index: index,
-              data: null
-            };
+      // 确保默认模型已加载
+      const modelName = EMBEDDING_CONFIG.DEFAULT_MODEL;
+      if (!this.loadedModels.has(modelName)) {
+        await this.loadModel(modelName);
+      }
+
+      const extractor = this.loadedModels.get(modelName);
+      
+      console.log(`🔄 从Blob对象提取图像特征中...`);
+      const features = await extractor(imageBlob);
+      
+      // 处理特征数据 - 确保是数值数组
+      let featureArray;
+      
+      // 处理特征数据
+      
+      if (Array.isArray(features)) {
+        // 如果已经是数组，检查是否包含对象
+        if (features.length > 0 && typeof features[0] === 'object' && features[0].ort_tensor) {
+          // 如果是包含ort_tensor对象的数组，提取cpuData
+          const tensorData = features[0].ort_tensor.cpuData;
+          // 提取tensor数据
+          
+          if (tensorData && typeof tensorData === 'object') {
+            // 将cpuData对象转换为数值数组，按索引排序
+            const sortedKeys = Object.keys(tensorData).map(Number).sort((a, b) => a - b);
+            featureArray = sortedKeys.map(key => tensorData[key]);
+            // 特征数组转换完成
+          } else {
+            // 如果tensorData无效，保持原数组
+            featureArray = features;
+            // 使用原始数组
           }
-        },
-        priority: 0,
-        retries: CONCURRENCY_CONFIG.DEFAULT_RETRIES,
-        timeout: CONCURRENCY_CONFIG.DEFAULT_TIMEOUT
-      }));
-
-      // 使用并发控制器执行任务
-      const results = await Promise.all(
-        tasks.map(taskConfig => this.concurrencyController.addTask(taskConfig))
+        } else {
+          featureArray = features;
+          // 使用原始数组
+        }
+      } else if (features && typeof features === 'object' && 'data' in features) {
+        // 如果是对象包含data属性，提取data
+        featureArray = Array.isArray(features.data) ? features.data : Array.from(features.data);
+        // 从data属性提取
+      } else if (features && typeof features === 'object' && 'image_embeds' in features) {
+        // 如果是对象包含image_embeds属性，提取image_embeds
+        featureArray = Array.isArray(features.image_embeds) ? features.image_embeds : Array.from(features.image_embeds);
+        // 从image_embeds属性提取
+      } else {
+        // 其他情况，尝试转换为数组
+        try {
+          featureArray = Array.from(features);
+          // 使用Array.from转换
+        } catch (error) {
+          console.error('❌ Array.from转换失败:', error.message);
+          throw new Error(`无法处理特征数据格式: ${typeof features}`);
+        }
+      }
+      
+      // 确保是数值数组
+      
+      if (!Array.isArray(featureArray)) {
+        console.error('❌ featureArray不是数组');
+        throw new Error(`特征提取结果不是数组，类型: ${typeof featureArray}`);
+      }
+      
+      if (featureArray.length === 0) {
+        console.error('❌ featureArray为空数组');
+        throw new Error('特征提取结果为空数组');
+      }
+      
+      // 验证特征向量是否为数值
+      const isValidFeatures = featureArray.every(feature => 
+        typeof feature === 'number' && !isNaN(feature) && isFinite(feature)
       );
-
-      const successfulCount = results.filter(r => r && r.success).length;
-      console.log(`✅ 批量特征提取完成，成功: ${successfulCount}/${results.length}`);
-
-      return results;
+      
+      if (!isValidFeatures) {
+        console.error('❌ 特征向量包含非数值数据');
+        throw new Error('特征向量包含非数值数据');
+      }
+      
+      console.log(`✅ Blob特征提取完成`);
+      
+      result = {
+        success: true,
+        data: {
+          features: featureArray,
+          dimension: featureArray.length
+        },
+        message: 'Blob特征提取成功'
+      };
+      
+      return result;
     } catch (error) {
-      console.error('❌ 批量特征提取失败:', error.message);
+      console.error('❌ Blob特征提取失败:', error.message);
       throw error;
+    } finally {
+      // 清理Blob对象引用
+      try {
+        // 在Node.js中，Blob对象会被垃圾回收器自动清理
+        // 但我们可以显式地设置为null来帮助GC
+        imageBlob = null;
+        console.log('🧹 服务层Blob对象已清理');
+      } catch (cleanupError) {
+        console.warn('⚠️ 服务层Blob清理警告:', cleanupError.message);
+      }
     }
   }
 
-  /**
-   * 获取已加载的模型列表
-   * @returns {Array} 已加载的模型名称数组
-   */
-  getLoadedModels() {
-    return Array.from(this.loadedModels.keys());
-  }
-
-  /**
-   * 获取服务统计信息
-   * @returns {Object} 统计信息
-   */
-  getStats() {
-    return {
-      isInitialized: this.isInitialized,
-      loadedModels: this.getLoadedModels(),
-      concurrencyStats: this.concurrencyController.getStats()
-    };
-  }
 
   /**
    * 停止服务
