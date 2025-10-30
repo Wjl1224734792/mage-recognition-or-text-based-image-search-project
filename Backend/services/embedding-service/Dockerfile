@@ -13,8 +13,8 @@ RUN printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib 
   >> /etc/apt/sources.list \
   && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free non-free-firmware\n" \
   >> /etc/apt/sources.list \
-  && npm config set registry https://registry.npmmirror.com \
-  && yarn config set registry https://registry.npmmirror.com
+  && npm config set registry https://mirrors.huaweicloud.com/repository/npm/ \
+  && yarn config set registry https://mirrors.huaweicloud.com/repository/npm/
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
