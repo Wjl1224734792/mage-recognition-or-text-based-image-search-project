@@ -1,5 +1,5 @@
 # 数据库服务 Dockerfile
-FROM node:lts
+FROM node:latest
 
 # 设置工作目录
 WORKDIR /app
