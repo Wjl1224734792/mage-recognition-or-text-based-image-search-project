@@ -4,6 +4,18 @@ FROM node:22.21.1-trixie-slim
 # 设置工作目录
 WORKDIR /app
 
+# 使用国内镜像源（Debian Trixie 清华镜像 + npm/yarn npmmirror）
+RUN printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib non-free non-free-firmware\n" \
+  > /etc/apt/sources.list \
+  && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-updates main contrib non-free non-free-firmware\n" \
+  >> /etc/apt/sources.list \
+  && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-backports main contrib non-free non-free-firmware\n" \
+  >> /etc/apt/sources.list \
+  && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free non-free-firmware\n" \
+  >> /etc/apt/sources.list \
+  && npm config set registry https://registry.npmmirror.com \
+  && yarn config set registry https://registry.npmmirror.com
+
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
     curl \
