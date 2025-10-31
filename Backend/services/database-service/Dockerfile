@@ -4,7 +4,7 @@ FROM node:22.21.1-trixie-slim
 # 设置工作目录
 WORKDIR /app
 
-# 使用国内镜像源（Debian Trixie 清华镜像 + npm/yarn npmmirror）
+# 使用国内镜像源（Debian Trixie 清华镜像 + npm npmmirror）
 RUN printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib non-free non-free-firmware\n" \
   > /etc/apt/sources.list \
   && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-updates main contrib non-free non-free-firmware\n" \
@@ -13,19 +13,14 @@ RUN printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib 
   >> /etc/apt/sources.list \
   && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free non-free-firmware\n" \
   >> /etc/apt/sources.list \
-  && npm config set registry https://mirrors.huaweicloud.com/repository/npm/ \
-  && yarn config set registry https://mirrors.huaweicloud.com/repository/npm/
+  && npm config set registry https://mirrors.huaweicloud.com/repository/npm/
 
 # 安装系统依赖
 RUN apt-get update && apt-get install -y \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# 复制 package.json 和 yarn.lock
-COPY package.json yarn.lock ./
-
-# 安装依赖
-RUN yarn install --frozen-lockfile --production
+# 已包含 node_modules，无需在镜像内安装依赖
 
 # 复制应用代码
 COPY . .

@@ -4,7 +4,7 @@ FROM node:22.21.1-trixie-slim
 # 设置工作目录
 WORKDIR /app
 
-# 使用国内镜像源（Debian Trixie 清华镜像 + npm/yarn npmmirror）
+# 使用国内镜像源（Debian Trixie 清华镜像 + npm npmmirror）
 RUN printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib non-free non-free-firmware\n" \
   > /etc/apt/sources.list \
   && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie-updates main contrib non-free non-free-firmware\n" \
@@ -13,22 +13,33 @@ RUN printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian/ trixie main contrib 
   >> /etc/apt/sources.list \
   && printf "deb http://mirrors.tuna.tsinghua.edu.cn/debian-security trixie-security main contrib non-free non-free-firmware\n" \
   >> /etc/apt/sources.list \
-  && npm config set registry https://mirrors.huaweicloud.com/repository/npm/ \
-  && yarn config set registry https://mirrors.huaweicloud.com/repository/npm/
+  && npm config set registry https://mirrors.huaweicloud.com/repository/npm/
 
 # 安装系统依赖
-RUN apt-get update && apt-get install -y \
-    curl \
-    && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libvips-dev \
+    gcc \
+    g++ \
+    make \
+    && rm -rf /var/lib/apt/lists/*  # 清理缓存，减小镜像体积
 
-# 复制 package.json 和 yarn.lock
-COPY package.json yarn.lock ./
+# 安装/更新 yarn（如果不存在或需要更新）- 使用 --force 避免冲突
+RUN npm install -g yarn --force || true
 
-# 安装依赖
-RUN yarn install --frozen-lockfile --production
-
-# 复制应用代码
+# 复制所有文件到容器（包括 Windows 版本的 node_modules）
 COPY . .
+
+# 强制重新安装 sharp，确保使用 Linux 版本（覆盖 Windows 版本）
+# 删除 Windows 版本的 sharp，然后使用 yarn 单独安装 Linux 版本
+# 在容器内，会自动安装匹配当前 Linux 平台的版本
+RUN echo "🗑️ 删除 Windows 版本的 sharp..." && \
+    rm -rf node_modules/sharp services/embedding-service/node_modules/sharp && \
+    cd services/embedding-service && \
+    echo "📦 使用 yarn 单独安装 Linux 版本的 sharp..." && \
+    (yarn add sharp --force || \
+     (echo "⚠️ yarn 安装失败，尝试使用 npm..." && npm install sharp --force) || \
+     (echo "⚠️ npm 单独安装失败，回退到重新安装所有依赖..." && yarn install --force || npm install --force)) && \
+    echo "✅ sharp 安装完成"
 
 # 创建必要的目录
 RUN mkdir -p /app/config /app/utils /app/models /app/.cache

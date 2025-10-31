@@ -117,11 +117,13 @@
 {
   "success": true,
   "data": {
-    "row_id": "test_1761123238055",
-    "action": "inserted",
-    "insert_count": "1",
-    "dimension": 768
-  },
+        "success": true,
+        "data": {
+            "row_id": "test-5a44-4b82-b950-4485b4e51a9c",
+            "action": "inserted",
+            "insert_count": "1",
+            "dimension": 768
+        },
   "message": "图像向量同步成功"
 }
 ```
@@ -130,13 +132,16 @@
 
 ```json
 {
-  "success": true,
-  "data": {
-    "row_id": "test_1761123238055",
-    "action": "skipped",
-    "reason": "数据已存在"
-  },
-  "message": "数据已存在，跳过插入"
+    "success": true,
+    "data": {
+        "success": true,
+        "data": {
+            "row_id": "test-5a44-4b82-b950-4485b4e51a9c",
+            "action": "skipped",
+            "reason": "数据已存在"
+        },
+        "message": "数据已存在，跳过插入"
+    }
 }
 ```
 

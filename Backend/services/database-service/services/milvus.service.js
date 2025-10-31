@@ -37,11 +37,11 @@ class MilvusService {
     
     // 监听事件
     this.concurrencyController.on('taskCompleted', (result) => {
-      console.log(`✅ 数据库任务完成`);
+      // 任务完成日志已移除
     });
 
     this.concurrencyController.on('taskFailed', (result) => {
-      console.error(`❌ 数据库任务失败, 错误: ${result.error.message}`);
+      console.error(`❌ 数据库任务失败: ${result.error.message}`);
     });
   }
 
@@ -75,20 +75,17 @@ class MilvusService {
     if (this.isConnected) return;
 
     try {
-      console.log(`🔄 正在连接 Milvus`);
-      
       this.client = new MilvusClient({
         address: `${MILVUS_CONFIG.HOST}:${MILVUS_CONFIG.PORT}`,
-        database: 'default', // 连接到默认数据库
+        database: 'default',
         username: MILVUS_CONFIG.USERNAME,
         password: MILVUS_CONFIG.PASSWORD
       });
 
-      // 测试连接 - 使用简单的健康检查
+      // 测试连接
       await this.client.checkHealth();
       
       this.isConnected = true;
-      console.log(`✅ Milvus 连接成功`);
     } catch (error) {
       console.error('❌ Milvus 连接失败:', error.message);
       console.error('💡 请确保 Milvus 服务正在运行');
@@ -107,25 +104,17 @@ class MilvusService {
       });
 
       if (!hasCollection.value) {
-        console.log(`🔄 集合不存在，正在创建`);
         await this.createCollection();
-        console.log(`✅ 集合创建成功`);
       } else {
-        console.log(`✅ 集合已存在`);
-        
         // 检查集合是否已加载
         const isLoaded = await this.client.getLoadState({
           collection_name: MILVUS_CONFIG.COLLECTION_NAME
         });
         
         if (isLoaded.state !== 'LoadStateLoaded') {
-          console.log(`🔄 加载集合到内存`);
           await this.client.loadCollection({
             collection_name: MILVUS_CONFIG.COLLECTION_NAME
           });
-          console.log(`✅ 集合加载完成`);
-        } else {
-          console.log(`✅ 集合已加载`);
         }
       }
     } catch (error) {
@@ -159,10 +148,8 @@ class MilvusService {
       };
 
       await this.client.createCollection(schema);
-      console.log(`✅ 集合创建成功`);
 
       // 创建HNSW索引
-      console.log(`🔄 创建HNSW索引...`);
       await this.client.createIndex({
         collection_name: MILVUS_CONFIG.COLLECTION_NAME,
         field_name: 'image_vector',
@@ -173,14 +160,11 @@ class MilvusService {
           efConstruction: 200
         }
       });
-      console.log(`✅ HNSW索引创建成功`);
 
       // 加载集合到内存
-      console.log(`🔄 加载集合到内存...`);
       await this.client.loadCollection({
         collection_name: MILVUS_CONFIG.COLLECTION_NAME
       });
-      console.log(`✅ 集合加载完成`);
     } catch (error) {
       console.error('❌ 集合创建失败:', error.message);
       throw error;
@@ -197,15 +181,12 @@ class MilvusService {
     let blobSize = 0;
     
     try {
-      console.log('🔄 调用嵌入服务提取特征...');
-      
       let response;
       
       // 根据输入类型选择不同的接口
       if (imageInput instanceof Blob) {
         isBlobInput = true;
         blobSize = imageInput.size;
-        console.log(`📦 使用Blob接口，大小: ${blobSize} bytes`);
         
         // 将Blob对象转换为可以通过HTTP传递的格式
         const arrayBuffer = await imageInput.arrayBuffer();
@@ -219,7 +200,6 @@ class MilvusService {
           imageBlob: blobData
         });
       } else if (typeof imageInput === 'string') {
-        console.log(`🔗 使用URL接口: ${imageInput.substring(0, 50)}...`);
         response = await this.httpClient.post('/api/v1/embedding/extract', {
           imageInput
         });
@@ -231,22 +211,12 @@ class MilvusService {
         throw new Error(`嵌入服务调用失败: ${response.message}`);
       }
 
-      console.log(`✅ 特征提取成功`);
       return response.data.data.features;
     } catch (error) {
       console.error('❌ 嵌入服务调用失败:', error.message);
       throw error;
     } finally {
-      // 如果是Blob输入，记录清理信息
-      if (isBlobInput) {
-        try {
-          console.log(`🧹 Blob对象已传递给嵌入服务，大小: ${blobSize} bytes`);
-          // 注意：这里不能直接清理imageInput，因为它可能还在被调用者使用
-          // 清理工作由调用者（如searchSimilarVectorsWithBlob）负责
-        } catch (cleanupError) {
-          console.warn('⚠️ Blob传递记录警告:', cleanupError.message);
-        }
-      }
+      // Blob对象清理由调用者负责
     }
   }
 
@@ -349,8 +319,6 @@ class MilvusService {
       task: async () => {
         try {
           // 1. 先检查数据库中是否已存在该 rowId
-          console.log(`🔍 检查 rowId 是否存在`);
-          
           const existingData = await this.client.get({
             collection_name: MILVUS_CONFIG.COLLECTION_NAME,
             ids: [rowId],
@@ -361,7 +329,6 @@ class MilvusService {
           const exists = existingData.data && existingData.data.length > 0;
           
           if (exists) {
-            console.log(`✅ 数据已存在，跳过插入`);
             return {
               success: true,
               data: {
@@ -374,11 +341,9 @@ class MilvusService {
           }
 
           // 2. 如果不存在，调用嵌入服务提取特征
-          console.log(`🔄 数据不存在，开始提取特征`);
           const features = await this.callEmbeddingService(imageInput);
 
           // 3. 插入向量到数据库
-          console.log(`💾 插入向量到数据库`);
           const result = await this.client.insert({
             collection_name: MILVUS_CONFIG.COLLECTION_NAME,
             data: [{

@@ -32,8 +32,6 @@ export async function extractFeatures(req, res) {
       });
     }
 
-    console.log(`🔄 处理URL特征提取请求`);
-
     const result = await embeddingService.extractFeatures(imageInput);
 
     res.json({
@@ -101,8 +99,6 @@ export async function extractFeaturesFromBlob(req, res) {
       });
     }
 
-    console.log(`🔄 处理Blob特征提取请求，大小: ${imageBlob.size} bytes`);
-
     const result = await embeddingService.extractFeaturesFromBlob(imageBlob);
 
     res.json({
@@ -118,18 +114,15 @@ export async function extractFeaturesFromBlob(req, res) {
       error: 'Blob特征提取失败',
       message: error.message
     });
-  } finally {
-    // 清理Blob对象
-    if (imageBlob) {
-      try {
-        // 在Node.js中，Blob对象会被垃圾回收器自动清理
-        // 但我们可以显式地设置为null来帮助GC
-        imageBlob = null;
-        console.log('🧹 Blob对象已清理');
-      } catch (cleanupError) {
-        console.warn('⚠️ Blob清理警告:', cleanupError.message);
+    } finally {
+      // 清理Blob对象
+      if (imageBlob) {
+        try {
+          imageBlob = null;
+        } catch (cleanupError) {
+          // 清理失败，静默处理
+        }
       }
     }
-  }
 }
 

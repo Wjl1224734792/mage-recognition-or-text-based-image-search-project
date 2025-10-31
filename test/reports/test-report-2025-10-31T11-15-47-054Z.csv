@@ -1,0 +1,14 @@
+测试类型,指标,值
+概览,总测试数,7
+概览,通过测试,7
+概览,失败测试,0
+概览,成功率,100%
+
+测试名称,状态,响应时间,端点,错误信息
+健康检查,通过,9,/health,N/A
+集合统计,通过,0,/api/v1/milvus/stats,N/A
+插入向量,通过,0,/api/v1/milvus/insert,N/A
+同步向量,通过,0,/api/v1/milvus/sync,N/A
+更新向量,通过,0,/api/v1/milvus/update,N/A
+搜索向量,通过,0,/api/v1/milvus/search,N/A
+批量删除,通过,0,/api/v1/milvus/batch-delete,N/A

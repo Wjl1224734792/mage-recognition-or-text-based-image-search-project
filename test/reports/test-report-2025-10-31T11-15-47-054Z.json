@@ -1,0 +1,245 @@
+{
+  "metadata": {
+    "timestamp": "2025-10-31T11-15-47-054Z",
+    "testType": "unit",
+    "version": "1.0.0",
+    "environment": {
+      "nodeVersion": "v20.19.2",
+      "platform": "win32",
+      "arch": "x64"
+    }
+  },
+  "summary": {
+    "totalTests": 7,
+    "passedTests": 7,
+    "failedTests": 0,
+    "successRate": 100,
+    "duration": 23110,
+    "timestamp": "2025-10-31T03:15:47.055Z"
+  },
+  "details": [
+    {
+      "testName": "健康检查",
+      "endpoint": "/health",
+      "success": true,
+      "responseTime": 9,
+      "status": 200,
+      "data": {
+        "status": "healthy",
+        "service": "database-service",
+        "timestamp": "2025-10-31T03:15:23.958Z",
+        "config": {
+          "port": 3001,
+          "maxConcurrency": 6,
+          "milvusHost": "已配置",
+          "milvusPort": "已配置",
+          "collectionName": "已配置"
+        }
+      }
+    },
+    {
+      "testName": "集合统计",
+      "endpoint": "/api/v1/milvus/stats",
+      "success": true,
+      "responseTime": 0,
+      "status": 200,
+      "data": {
+        "success": true,
+        "data": {
+          "rowCount": 0
+        }
+      }
+    },
+    {
+      "testName": "插入向量",
+      "endpoint": "/api/v1/milvus/insert",
+      "success": true,
+      "responseTime": 0,
+      "status": 200,
+      "data": {
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "row_id": "test_1761880523864",
+            "insert_count": "1"
+          },
+          "message": "图像向量插入成功"
+        }
+      },
+      "requestData": {
+        "rowId": "test_1761880523864",
+        "imageInput": "https://p1.mingdaoyun.cn/08e2825b-c10b-43b9-89b1-c7f5ba5a770a/43ec1c14-758c-441f-8a83-5ceeec13a369/688e02ab8b7cf09a3c293179/20251015/6J5F0H0FdH8I4R759Vft8Q6s5L9ldz7Pf02l1B3Z8T6A0F1w235Udv3Qch5sfR0w.jpg?e=1761464870&token=mN_sp-Y4_5zePppXZC8fTktRmKMNiYlC8jl_yeGZ:mV8Ytzr1e2BUBll6hfZmNoDL8eI=&imageView2/2/interlace/1"
+      }
+    },
+    {
+      "testName": "同步向量",
+      "endpoint": "/api/v1/milvus/sync",
+      "success": true,
+      "responseTime": 0,
+      "status": 200,
+      "data": {
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "row_id": "test_1761880523864",
+            "action": "skipped",
+            "reason": "数据已存在"
+          },
+          "message": "数据已存在，跳过插入"
+        }
+      },
+      "requestData": {
+        "rowId": "test_1761880523864",
+        "imageInput": "https://p1.mingdaoyun.cn/08e2825b-c10b-43b9-89b1-c7f5ba5a770a/43ec1c14-758c-441f-8a83-5ceeec13a369/688e02ab8b7cf09a3c293179/20251015/6J5F0H0FdH8I4R759Vft8Q6s5L9ldz7Pf02l1B3Z8T6A0F1w235Udv3Qch5sfR0w.jpg?e=1761464870&token=mN_sp-Y4_5zePppXZC8fTktRmKMNiYlC8jl_yeGZ:mV8Ytzr1e2BUBll6hfZmNoDL8eI=&imageView2/2/interlace/1"
+      }
+    },
+    {
+      "testName": "更新向量",
+      "endpoint": "/api/v1/milvus/update",
+      "success": true,
+      "responseTime": 0,
+      "status": 200,
+      "data": {
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "row_id": "test_1761880523864",
+            "upsert_count": "1"
+          },
+          "message": "图像向量更新成功"
+        }
+      },
+      "requestData": {
+        "rowId": "test_1761880523864",
+        "imageInput": "https://p1.mingdaoyun.cn/08e2825b-c10b-43b9-89b1-c7f5ba5a770a/43ec1c14-758c-441f-8a83-5ceeec13a369/688e02ab8b7cf09a3c293179/20251015/6J5F0H0FdH8I4R759Vft8Q6s5L9ldz7Pf02l1B3Z8T6A0F1w235Udv3Qch5sfR0w.jpg?e=1761464870&token=mN_sp-Y4_5zePppXZC8fTktRmKMNiYlC8jl_yeGZ:mV8Ytzr1e2BUBll6hfZmNoDL8eI=&imageView2/2/interlace/1"
+      }
+    },
+    {
+      "testName": "搜索向量",
+      "endpoint": "/api/v1/milvus/search",
+      "success": true,
+      "responseTime": 0,
+      "status": 200,
+      "data": {
+        "success": true,
+        "data": {
+          "success": true,
+          "data": [
+            {
+              "score": 0,
+              "row_id": "test_1761880523864"
+            },
+            {
+              "score": 2.587412118911743,
+              "row_id": "60187ffb-891e-45d0-a2c1-e2ecb3e75462"
+            },
+            {
+              "score": 2.587412118911743,
+              "row_id": "d5b18d2f-936c-4d33-b581-063d5236a985"
+            },
+            {
+              "score": 182.90322875976562,
+              "row_id": "f343fbad-a299-4492-861b-cc5b5b784d1c"
+            },
+            {
+              "score": 183.3263702392578,
+              "row_id": "f2c12dee-4119-4fc0-b4a3-365b1c5875b0"
+            },
+            {
+              "score": 184.1804962158203,
+              "row_id": "1d141fa7-847a-42f6-a832-0c5ab3a6c2e9"
+            },
+            {
+              "score": 185.376708984375,
+              "row_id": "ff24c7c0-c9ee-4f86-9f12-3b2b861dc38a"
+            },
+            {
+              "score": 185.71372985839844,
+              "row_id": "675f4506-464b-41f9-b107-4fdb280b2279"
+            },
+            {
+              "score": 185.8931121826172,
+              "row_id": "80be5825-6757-48f3-a665-bd9798271fc7"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "32f34850-170b-423b-a013-616bb1b44a76"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "33a1df84-08da-421e-b288-041f0a8ceb81"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "5fb0ba20-c9b0-46f9-b2df-f6ec83aa59d0"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "7ee666f0-974b-4e7f-be0c-49c97eba6d36"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "94cf644d-8091-4fdb-b64c-00719d54faf0"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "cd3aba2e-a327-4344-84ec-6785ea710f0e"
+            },
+            {
+              "score": 190.05804443359375,
+              "row_id": "d2995af8-18bd-4e08-a97d-7285d2a513f1"
+            },
+            {
+              "score": 191.154296875,
+              "row_id": "486250a4-0b1c-4d5d-851a-e373a08f55ce"
+            },
+            {
+              "score": 195.57345581054688,
+              "row_id": "062128d4-aa69-47ad-850f-297c6b176fbf"
+            },
+            {
+              "score": 196.32156372070312,
+              "row_id": "eb0626b1-5d37-49a7-8b8e-6ac7b65ac06b"
+            },
+            {
+              "score": 200.15817260742188,
+              "row_id": "1e660495-01cd-4885-87c0-4ddbc34267e8"
+            }
+          ],
+          "message": "相似向量搜索成功"
+        }
+      },
+      "requestData": {
+        "imageInput": "https://p1.mingdaoyun.cn/08e2825b-c10b-43b9-89b1-c7f5ba5a770a/43ec1c14-758c-441f-8a83-5ceeec13a369/688e02ab8b7cf09a3c293179/20251015/6J5F0H0FdH8I4R759Vft8Q6s5L9ldz7Pf02l1B3Z8T6A0F1w235Udv3Qch5sfR0w.jpg?e=1761464870&token=mN_sp-Y4_5zePppXZC8fTktRmKMNiYlC8jl_yeGZ:mV8Ytzr1e2BUBll6hfZmNoDL8eI=&imageView2/2/interlace/1",
+        "limit": 20
+      }
+    },
+    {
+      "testName": "批量删除",
+      "endpoint": "/api/v1/milvus/batch-delete",
+      "success": true,
+      "responseTime": 0,
+      "status": 200,
+      "data": {
+        "success": true,
+        "data": {
+          "success": true,
+          "data": {
+            "deletedCount": 1
+          },
+          "message": "批量删除成功"
+        }
+      },
+      "requestData": {
+        "rowIds": [
+          "test_1761880523864"
+        ]
+      }
+    }
+  ],
+  "performance": {},
+  "recommendations": []
+}

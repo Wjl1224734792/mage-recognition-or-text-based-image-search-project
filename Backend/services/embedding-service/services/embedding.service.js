@@ -41,11 +41,11 @@ class EmbeddingService {
     
     // 监听事件
     this.concurrencyController.on('taskCompleted', (result) => {
-      console.log(`✅ 嵌入任务完成，耗时: ${result.duration}ms`);
+      // 任务完成日志已移除
     });
 
     this.concurrencyController.on('taskFailed', (result) => {
-      console.error(`❌ 嵌入任务失败，错误: ${result.error.message}`);
+      console.error(`❌ 嵌入任务失败: ${result.error.message}`);
     });
   }
 
@@ -56,13 +56,10 @@ class EmbeddingService {
     if (this.isInitialized) return;
 
     try {
-      console.log('🔄 初始化嵌入服务...');
-      
       // 加载默认模型
       await this.loadModel(EMBEDDING_CONFIG.DEFAULT_MODEL);
       
       this.isInitialized = true;
-      console.log('✅ 嵌入服务初始化完成');
     } catch (error) {
       console.error('❌ 嵌入服务初始化失败:', error.message);
       throw error;
@@ -84,8 +81,6 @@ class EmbeddingService {
     }
 
     try {
-      console.log(`🔄 加载模型中...`);
-      
       const modelConfig = EMBEDDING_CONFIG.MODELS[modelName];
       if (!modelConfig) {
         throw new Error(`未找到模型配置: ${modelName}`);
@@ -106,7 +101,6 @@ class EmbeddingService {
 
       this.loadedModels.set(modelName, extractor);
       
-      console.log(`✅ 模型加载成功`);
       return {
         success: true,
         message: `模型 ${modelName} 加载成功`,
@@ -133,11 +127,9 @@ class EmbeddingService {
         const stats = await fs.stat(modelPath);
         if (stats.isDirectory()) {
           const files = await fs.readdir(modelPath);
-          console.log(`📁 发现本地模型文件，文件数量: ${files.length}`);
           return files.length > 0;
         }
       } catch (error) {
-        console.log(`📁 未发现本地模型文件`);
         return false;
       }
       
@@ -181,7 +173,6 @@ class EmbeddingService {
 
       const extractor = this.loadedModels.get(modelName);
       
-      console.log(`🔄 提取图像特征中...`);
       const features = await extractor(imageInput);
       
       // 处理特征数据 - 确保是数值数组
@@ -251,8 +242,6 @@ class EmbeddingService {
         throw new Error('特征向量包含非数值数据');
       }
       
-      console.log(`✅ 特征提取完成`);
-      
       return {
         success: true,
         data: {
@@ -307,7 +296,6 @@ class EmbeddingService {
 
       const extractor = this.loadedModels.get(modelName);
       
-      console.log(`🔄 从Blob对象提取图像特征中...`);
       const features = await extractor(imageBlob);
       
       // 处理特征数据 - 确保是数值数组
@@ -377,8 +365,6 @@ class EmbeddingService {
         throw new Error('特征向量包含非数值数据');
       }
       
-      console.log(`✅ Blob特征提取完成`);
-      
       result = {
         success: true,
         data: {
@@ -395,12 +381,9 @@ class EmbeddingService {
     } finally {
       // 清理Blob对象引用
       try {
-        // 在Node.js中，Blob对象会被垃圾回收器自动清理
-        // 但我们可以显式地设置为null来帮助GC
         imageBlob = null;
-        console.log('🧹 服务层Blob对象已清理');
       } catch (cleanupError) {
-        console.warn('⚠️ 服务层Blob清理警告:', cleanupError.message);
+        // 清理失败，静默处理
       }
     }
   }
@@ -413,7 +396,6 @@ class EmbeddingService {
     this.concurrencyController.stop();
     this.loadedModels.clear();
     this.isInitialized = false;
-    console.log('🛑 嵌入服务已停止');
   }
 }
 

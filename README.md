@@ -1,12 +1,12 @@
-# 图像/文本识别与图像搜索服务
+# 服装图像识别与图像搜索服务
 
-基于 Milvus 向量数据库的服装（变更模型和管道API可以适配不同场景的需求）图像识别与搜索服务，提供图像特征提取、向量存储和相似性搜索功能。
+基于 Milvus 向量数据库的服装图像识别与搜索服务，提供图像特征提取、向量存储和相似性搜索功能。
 
-## 🏗️ 架构设
+## 🏗️ 架构设计
 
 ### 服务架构
 ```
-图像/文本识别与图像搜索服务/
+服装图像识别与图像搜索服务/
 ├── Backend/                   # 后端服务
 │   ├── config/                # 共享配置
 │   │   └── shared.config.js   # 统一配置管理
@@ -174,7 +174,7 @@ Content-Type: application/json
 }
 ```
 
-#### 搜索相似向量
+#### 搜索相似向量（通过URL）
 ```http
 POST http://localhost:3001/api/v1/milvus/search
 Content-Type: application/json
@@ -183,6 +183,15 @@ Content-Type: application/json
   "imageInput": "https://example.com/image.jpg",
   "limit": 20
 }
+```
+
+#### 搜索相似向量（通过文件上传）
+```http
+POST http://localhost:3001/api/v1/milvus/search/blob?limit=20
+Content-Type: multipart/form-data
+
+# 表单数据：
+# image: [图像文件]
 ```
 
 #### 批量删除向量
@@ -201,6 +210,11 @@ GET http://localhost:3001/api/v1/milvus/stats
 ```
 
 > **💡 端口配置说明**: 数据库服务支持自定义对外端口，可通过修改 `docker-compose.yml` 中的端口映射来更改对外访问端口。例如：`"8880:3001"` 表示外部通过 8880 端口访问，容器内部仍使用 3001 端口。
+
+> **📸 图像输入支持**: 
+> - **URL 搜索**: 使用 `/search` 接口，通过 JSON 传递图像 URL
+> - **文件上传搜索**: 使用 `/search/blob` 接口，通过 multipart/form-data 上传图像文件
+> - **文件限制**: 支持最大 10MB 的图像文件，支持常见图像格式（jpg、png、gif 等）
 
 ## ⚙️ 配置说明
 
