@@ -17,6 +17,17 @@ import {
 
 const router = express.Router();
 
+// 允许的图像文件 MIME 类型白名单
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',   // JPEG
+  'image/jpg',    // JPEG (另一种表示)
+  'image/png',    // PNG
+  'image/gif',    // GIF
+  'image/bmp',    // BMP
+  'image/tiff',   // TIFF
+  'image/webp',   // WebP
+];
+
 // 配置 multer 用于文件上传
 const upload = multer({
   storage: multer.memoryStorage(), // 使用内存存储
@@ -26,11 +37,11 @@ const upload = multer({
     fieldSize: 1024 * 1024, // 限制字段大小为 1MB
   },
   fileFilter: (req, file, cb) => {
-    // 只允许图像文件
-    if (file.mimetype.startsWith('image/')) {
+    // 显式限制只允许图像文件格式
+    if (ALLOWED_IMAGE_TYPES.includes(file.mimetype.toLowerCase())) {
       cb(null, true);
     } else {
-      cb(new Error('只允许上传图像文件'), false);
+      cb(new Error(`不支持的文件类型: ${file.mimetype}。只允许上传以下图像格式: ${ALLOWED_IMAGE_TYPES.join(', ')}`), false);
     }
   },
   // 添加清理中间件

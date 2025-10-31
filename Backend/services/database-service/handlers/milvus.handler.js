@@ -5,6 +5,17 @@
 
 import milvusService from '../services/milvus.service.js';
 
+// 允许的图像文件 MIME 类型白名单（与路由配置保持一致）
+const ALLOWED_IMAGE_TYPES = [
+  'image/jpeg',   // JPEG
+  'image/jpg',    // JPEG (另一种表示)
+  'image/png',    // PNG
+  'image/gif',    // GIF
+  'image/bmp',    // BMP
+  'image/tiff',   // TIFF
+  'image/webp',   // WebP
+];
+
 /**
  * 插入图像向量
  * @param {Object} req - 请求对象
@@ -22,8 +33,6 @@ export async function insertImageVector(req, res) {
         message: 'rowId 和 imageInput 参数是必需的'
       });
     }
-
-    console.log(`🔄 处理插入请求`);
 
     const result = await milvusService.insertImageVector(rowId, imageInput);
 
@@ -61,8 +70,6 @@ export async function updateImageVector(req, res) {
       });
     }
 
-    console.log(`🔄 处理更新请求`);
-
     const result = await milvusService.updateImageVector(rowId, imageInput);
 
     res.json({
@@ -98,8 +105,6 @@ export async function batchDeleteImageVectors(req, res) {
         message: 'rowIds 参数必须是非空数组'
       });
     }
-
-    console.log(`🔄 处理批量删除请求`);
 
     const result = await milvusService.batchDeleteImageVectors(rowIds);
 
@@ -137,11 +142,9 @@ export async function searchSimilarVectors(req, res) {
       });
     }
 
-    console.log(`🔄 处理搜索请求`);
-
     const options = {
       limit,
-      output_fields: ['row_id'] // 固定输出字段为 row_id
+      output_fields: ['row_id']
     };
 
     const result = await milvusService.searchSimilarVectors(imageInput, options);
@@ -183,20 +186,20 @@ export async function searchSimilarVectorsWithBlob(req, res) {
       });
     }
 
-    // 验证文件类型
-    if (!imageFile.mimetype.startsWith('image/')) {
+    // 显式验证图像文件格式（双重验证，确保安全性）
+    const mimeType = imageFile.mimetype.toLowerCase();
+    if (!ALLOWED_IMAGE_TYPES.includes(mimeType)) {
       return res.status(400).json({
         success: false,
         error: '文件类型错误',
-        message: '请上传图像文件'
+        message: `不支持的文件类型: ${imageFile.mimetype}。只允许上传以下图像格式: ${ALLOWED_IMAGE_TYPES.join(', ')}`,
+        allowedTypes: ALLOWED_IMAGE_TYPES
       });
     }
 
-    console.log(`🔄 处理文件上传搜索请求，文件: ${imageFile.originalname}`);
-
     const options = {
       limit: limit ? parseInt(limit) : undefined,
-      output_fields: ['row_id'] // 固定输出字段为 row_id
+      output_fields: ['row_id']
     };
 
     // 将文件转换为 Blob 对象
@@ -222,27 +225,18 @@ export async function searchSimilarVectorsWithBlob(req, res) {
     // 清理内存：释放 Blob 对象
     if (imageBlob) {
       try {
-        // 在 Node.js 中，Blob 对象会被垃圾回收器自动清理
-        // 但我们可以显式地设置为 null 来帮助 GC
-        const blobSize = imageBlob.size;
-        
-        
         imageBlob = null;
-        console.log(`🧹 Blob 对象已清理，原大小: ${blobSize} bytes`);
       } catch (cleanupError) {
-        console.warn('⚠️ Blob 清理警告:', cleanupError.message);
+        // 清理失败，静默处理
       }
     }
     
     // 清理 multer 文件缓冲区
     if (req.file && req.file.buffer) {
       try {
-        const bufferSize = req.file.buffer.length;
-        // 清空缓冲区
         req.file.buffer.fill(0);
-        console.log(`🧹 文件缓冲区已清理，原大小: ${bufferSize} bytes`);
       } catch (bufferCleanupError) {
-        console.warn('⚠️ 缓冲区清理警告:', bufferCleanupError.message);
+        // 清理失败，静默处理
       }
     }
     
@@ -250,9 +244,8 @@ export async function searchSimilarVectorsWithBlob(req, res) {
     if (req.file) {
       try {
         req.file = null;
-        console.log('🧹 请求文件引用已清理');
       } catch (fileRefCleanupError) {
-        console.warn('⚠️ 文件引用清理警告:', fileRefCleanupError.message);
+        // 清理失败，静默处理
       }
     }
   }
@@ -276,8 +269,6 @@ export async function syncImageVector(req, res) {
         message: 'rowId 和 imageInput 参数是必需的'
       });
     }
-
-    console.log(`🔄 处理同步请求`);
 
     const result = await milvusService.syncImageVector(rowId, imageInput);
 
@@ -304,8 +295,6 @@ export async function syncImageVector(req, res) {
  */
 export async function getCollectionStats(req, res) {
   try {
-    console.log('🔄 处理获取集合统计信息请求');
-
     const result = await milvusService.getCollectionStats();
 
     res.json({
